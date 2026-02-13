@@ -113,6 +113,8 @@
         position: fixed; inset: 0; display: flex; flex-direction: column;
         align-items: center; justify-content: center; z-index: 55;
         pointer-events: none; opacity: 0; transition: opacity 1.5s ease;
+        text-align: center;
+        padding: 0 20px;
       }
       .poetic-intro.visible { opacity: 1; }
       .poetic-intro.fade-out { opacity: 0; }
@@ -127,10 +129,11 @@
 
       /* ========== INTRO MAIN CONTENT ========== */
       .intro-content {
-        position: relative; z-index: 150; display: flex; flex-direction: column;
+        position: fixed; inset: 0; z-index: 150; display: flex; flex-direction: column;
         align-items: center; justify-content: center; min-height: 100vh;
         gap: 32px; opacity: 0; transform: translateY(30px);
         transition: opacity 1.5s ease 0.5s, transform 1.5s ease 0.5s;
+        text-align: center;
       }
       .intro-content.visible { opacity: 1; transform: translateY(0); }
 
@@ -385,7 +388,7 @@
               <div class="light-sweep"></div>
               <p class="text-sm sm:text-base uppercase tracking-[0.35em] text-rose-200/70 cinematic-text">A moment held just for you</p>
               <h1 class="mt-4 text-3xl sm:text-4xl font-semibold soft-glow cinematic-text">
-                Will you be my Valentine, <span class="name-glow">ADETEJU</span>?
+                Will you be my Valentine, <span class="name-glow">Roseline</span>?
               </h1>
               <p class="mt-4 text-base sm:text-lg text-rose-200/90 cinematic-text">
                 Somewhere between your laughter and your quiet moments… something in me shifted.
@@ -406,7 +409,7 @@
             <p class="text-sm uppercase tracking-[0.35em] text-rose-300/70 mb-4 success-line">You just made this moment unforgettable.</p>
             <h1 class="text-3xl sm:text-4xl font-semibold soft-glow text-rose-200 mb-6 success-line">Yes! 💕</h1>
             <div class="text-lg text-rose-200/90 soft-glow mb-8">
-              <p class="success-line"><span class="name-glow">Adeteju</span>...</p>
+              <p class="success-line"><span class="name-glow">Roseline</span>...</p>
               <p class="success-line mt-2">I don't know exactly when it happened... but somewhere along the way, you became my favorite notification, my calm in busy days, and the smile I look for without trying.</p>
               <p class="success-line mt-3">Thank you for choosing this moment with me.</p>
               <p class="success-line mt-3">I promise to make this Valentine feel as warm as the way you make me feel 💕</p>
@@ -515,6 +518,13 @@
         if (isClicked) return;
         isClicked = true;
 
+        // Immediately fade out intro content and poetic intro
+        introContent.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+        introContent.style.opacity = "0";
+        introContent.style.transform = "scale(0.95)";
+        poeticIntro.style.transition = "opacity 0.5s ease";
+        poeticIntro.style.opacity = "0";
+
         try { curtainSound.currentTime = 0; curtainSound.play().catch(() => {}); } catch (err) {}
         try { heartbeatAudio.playbackRate = 1.3; } catch (err) {}
 
@@ -523,7 +533,6 @@
         curtainContainer.classList.add("curtain-opening");
 
         setTimeout(() => body.classList.add("brightening"), 800);
-        setTimeout(() => { introContent.style.opacity = "0"; introContent.style.transform = "scale(1.1)"; }, 1200);
         setTimeout(() => createPetalBurst(window.innerWidth / 2, window.innerHeight / 2, 40), 1500);
 
         setTimeout(() => {
@@ -648,13 +657,28 @@
       const durationEl = document.getElementById("duration");
 
       const formatTime = (s) => { if (!s || isNaN(s)) return "0:00"; return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,"0")}`; };
+      
+      // Audio ducking - lower bg music when voice plays
+      const duckBgMusic = () => {
+        const fadeDown = setInterval(() => {
+          if (bgMusic.volume > 0.12) bgMusic.volume -= 0.03;
+          else { bgMusic.volume = 0.1; clearInterval(fadeDown); }
+        }, 50);
+      };
+      const restoreBgMusic = () => {
+        const fadeUp = setInterval(() => {
+          if (bgMusic.volume < 0.38) bgMusic.volume += 0.03;
+          else { bgMusic.volume = 0.4; clearInterval(fadeUp); }
+        }, 50);
+      };
+      
       playBtn.addEventListener("click", () => { if (voiceAudio.paused) { voiceAudio.play(); playBtn.textContent = "⏸"; } else { voiceAudio.pause(); playBtn.textContent = "▶"; } });
-      voiceAudio.addEventListener("play", () => playBtn.textContent = "⏸");
-      voiceAudio.addEventListener("pause", () => playBtn.textContent = "▶");
+      voiceAudio.addEventListener("play", () => { playBtn.textContent = "⏸"; duckBgMusic(); });
+      voiceAudio.addEventListener("pause", () => { playBtn.textContent = "▶"; restoreBgMusic(); });
       voiceAudio.addEventListener("loadedmetadata", () => durationEl.textContent = formatTime(voiceAudio.duration));
       voiceAudio.addEventListener("timeupdate", () => { progressFill.style.width = (voiceAudio.currentTime / voiceAudio.duration) * 100 + "%"; currentTimeEl.textContent = formatTime(voiceAudio.currentTime); });
       progressBar.addEventListener("click", (e) => { const rect = progressBar.getBoundingClientRect(); voiceAudio.currentTime = ((e.clientX - rect.left) / rect.width) * voiceAudio.duration; });
-      voiceAudio.addEventListener("ended", () => playBtn.textContent = "▶");
+      voiceAudio.addEventListener("ended", () => { playBtn.textContent = "▶"; restoreBgMusic(); });
     </script>
   </body>
 </html>
